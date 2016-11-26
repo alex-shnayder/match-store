@@ -1,7 +1,7 @@
 {
   "name": "wildcard-store",
   "version": "0.0.0",
-  "description": "",
+  "description": "A JavaScript store that supports wildcards in keys and finds. The best choice for event emitters",
   "author": "Alex Shnayder <alex@shnayder.pro>",
   "license": "MIT",
   "main": "src/Store.js",
@@ -11,7 +11,6 @@
     "lint": "./node_modules/.bin/eslint src test"
   },
   "keywords": [
-    "wildcard",
     "glob",
     "namespace",
     "emitter"
