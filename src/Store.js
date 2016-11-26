@@ -1,80 +1,94 @@
 'use strict';
 
+var Record = require('./Record');
 var doPathsMatch = require('./doPathsMatch');
-var prefix = '~';
 
 
-function Store(delimiter) {
-  this._handlers = {};
+var DEFAULT_SETTINGS = {
+  delimeter: '.',
+  prefix: '~'
+};
+
+
+function Store(settings) {
+  this._records = {};
   this._paths = [];
-  this._delimiter = delimiter || '.';
+  this._settings = settings || {};
 }
 
 module.exports = Store;
 Store.prototype.constructor = Store;
 
 
-Store.prototype.find = function find(pattern) {
+Store.prototype.get = function get(pattern) {
+  var delimeter = this._settings.delimeter || DEFAULT_SETTINGS.delimeter;
+  var prefix = this._settings.prefix || DEFAULT_SETTINGS.prefix;
   var paths = this._paths;
-  var matchedHandlers = [];
-  var patternArr = pattern.split(this._delimiter);
-  var path, pathArr, pathHandlers;
+  var matchedValues = [];
+  var patternArr = pattern.split(delimeter);
+  var path, pathArr, pathRecords, record;
 
   this.validatePath(patternArr);
 
   for (var i = 0; i < paths.length; i++) {
     path = paths[i];
-    pathArr = path.substr(prefix.length).split(this._delimiter);
+    pathArr = path.substr(prefix.length).split(delimeter);
 
     if (path === pattern || doPathsMatch(patternArr, pathArr)) {
-      pathHandlers = this._handlers[path];
+      pathRecords = this._records[path];
 
-      for (var j = 0; j < pathHandlers.length; j++) {
-        if (pathHandlers[j].active) {
-          matchedHandlers.push(pathHandlers[j]);
-        } else {
-          pathHandlers.splice(j, 1);
+      for (var j = 0; j < pathRecords.length; j++) {
+        record = pathRecords[j];
+
+        if (record.active) {
+          matchedValues.push(record.use());
+        }
+
+        if (!record.active) {
+          pathRecords.splice(j, 1);
           j--;
         }
       }
 
-      if (pathHandlers.length === 0) {
-        this.remove(path.substr(1));
+      if (pathRecords.length === 0) {
+        this.del(path.substr(1));
       }
     }
   }
 
-  return matchedHandlers;
+  return matchedValues;
 };
 
 
-Store.prototype.put = function put(path, handler) {
-  this.getOrCreatePath(path).push(handler);
+Store.prototype.set = function set(path, value, uses) {
+  var record = new Record(value, uses);
+  this.getOrCreatePath(path).push(record);
 };
 
 
-Store.prototype.remove = function remove(path, handler) {
+Store.prototype.del = function del(path, value) {
+  var prefix = this._settings.prefix || DEFAULT_SETTINGS.prefix;
   path = prefix + path;
 
-  var pathHandlers = this._handlers[path];
+  var pathRecords = this._records[path];
   var keyIndex;
 
-  if (!pathHandlers) {
+  if (!pathRecords) {
     return;
   }
 
-  if (handler) {
-    for (var i = 0; i < pathHandlers.length; i++) {
-      if (pathHandlers[i].is(handler)) {
-        pathHandlers[i].active = false;
-        pathHandlers.splice(i, 1);
+  if (arguments.length === 2) {
+    for (var i = 0; i < pathRecords.length; i++) {
+      if (pathRecords[i].is(value)) {
+        pathRecords[i].active = false;
+        pathRecords.splice(i, 1);
         i--;
       }
     }
   }
 
-  if (!handler || pathHandlers.length === 0) {
-    this._handlers[path] = undefined;
+  if (arguments.length === 1 || pathRecords.length === 0) {
+    this._records[path] = undefined;
     keyIndex = this._paths.indexOf(path);
 
     if (keyIndex !== -1) {
@@ -85,19 +99,21 @@ Store.prototype.remove = function remove(path, handler) {
 
 
 Store.prototype.getOrCreatePath = function getOrCreatePath(path) {
-  var pathArr = path.split(this._delimiter);
+  var delimeter = this._settings.delimeter || DEFAULT_SETTINGS.delimeter;
+  var prefix = this._settings.prefix || DEFAULT_SETTINGS.prefix;
+  var pathArr = path.split(delimeter);
 
   this.validatePath(pathArr);
 
   path = prefix + path;
-  var handlers = this._handlers[path];
+  var records = this._records[path];
 
-  if (!handlers) {
+  if (!records) {
     this._paths.push(path);
-    handlers = this._handlers[path] = [];
+    records = this._records[path] = [];
   }
 
-  return handlers;
+  return records;
 };
 
 
@@ -106,14 +122,14 @@ Store.prototype.validatePath = function validatePath(pathArr) {
 
   for (var i = 0; i < pathArr.length; i++) {
     if (pathArr[i].length === 0 || pathArr[i].search(/^\s*$/) !== -1) {
-      throw new Error('Path cannot contain empty or whitespace-only fragments');
+      throw new Error('Path must not contain empty or whitespace-only fragments');
     }
 
     if (pathArr[i] === '*' || pathArr[i] === '**') {
       numberOfWildcards++;
 
       if (numberOfWildcards > 1) {
-        throw new Error('Path cannot contain more than one wildcard');
+        throw new Error('Path must not contain more than one wildcard');
       }
     }
   }
