@@ -1,6 +1,6 @@
 {
   "name": "wildcard-store",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "A JavaScript store that supports wildcards in keys and finds. The best choice for event emitters",
   "author": "Alex Shnayder <alex@shnayder.pro>",
   "license": "MIT",
