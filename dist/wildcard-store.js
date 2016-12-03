@@ -57,19 +57,20 @@ return /******/ (function(modules) { // webpackBootstrap
 	'use strict';
 	
 	var Record = __webpack_require__(1);
-	var doPathsMatch = __webpack_require__(2);
 	
 	
 	var DEFAULT_SETTINGS = {
-	  delimeter: '.',
-	  prefix: '~'
+	  prefix: '~',
+	  match: function areKeysEqual(a, b) {
+	    return a === b;
+	  }
 	};
 	
 	
 	function Store(settings) {
-	  this._records = {};
-	  this._paths = [];
-	  this._settings = settings || {};
+	  this.records = {};
+	  this.keys = [];
+	  this.settings = settings || {};
 	}
 	
 	module.exports = Store;
@@ -77,37 +78,34 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	
 	Store.prototype.get = function get(pattern) {
-	  var delimeter = this._settings.delimeter || DEFAULT_SETTINGS.delimeter;
-	  var prefix = this._settings.prefix || DEFAULT_SETTINGS.prefix;
-	  var paths = this._paths;
+	  var prefix = this.settings.prefix || DEFAULT_SETTINGS.prefix;
+	  var doKeysMatch = this.settings.match || DEFAULT_SETTINGS.match;
+	  var keys = this.keys;
 	  var matchedValues = [];
-	  var patternArr = pattern.split(delimeter);
-	  var path, pathArr, pathRecords, record;
+	  var fullKey, key, keyRecords, record;
 	
-	  this.validatePath(patternArr);
+	  for (var i = 0; i < keys.length; i++) {
+	    fullKey = keys[i];
+	    key = fullKey.substr(prefix.length);
 	
-	  for (var i = 0; i < paths.length; i++) {
-	    path = paths[i];
-	    pathArr = path.substr(prefix.length).split(delimeter);
+	    if (doKeysMatch(key, pattern)) {
+	      keyRecords = this.records[fullKey];
 	
-	    if (path === pattern || doPathsMatch(patternArr, pathArr)) {
-	      pathRecords = this._records[path];
-	
-	      for (var j = 0; j < pathRecords.length; j++) {
-	        record = pathRecords[j];
+	      for (var j = 0; j < keyRecords.length; j++) {
+	        record = keyRecords[j];
 	
 	        if (record.active) {
 	          matchedValues.push(record.use());
 	        }
 	
 	        if (!record.active) {
-	          pathRecords.splice(j, 1);
+	          keyRecords.splice(j, 1);
 	          j--;
 	        }
 	      }
 	
-	      if (pathRecords.length === 0) {
-	        this.del(path.substr(1));
+	      if (keyRecords.length === 0) {
+	        this.del(key.substr(1));
 	      }
 	    }
 	  }
@@ -116,80 +114,56 @@ return /******/ (function(modules) { // webpackBootstrap
 	};
 	
 	
-	Store.prototype.set = function set(path, value, uses) {
+	Store.prototype.put = function put(key, value, uses) {
 	  var record = new Record(value, uses);
-	  this.getOrCreatePath(path).push(record);
+	  getOrCreateKey.call(this, key).push(record);
 	};
 	
 	
-	Store.prototype.del = function del(path, value) {
-	  var prefix = this._settings.prefix || DEFAULT_SETTINGS.prefix;
-	  path = prefix + path;
+	Store.prototype.del = function del(key, value) {
+	  var prefix = this.settings.prefix || DEFAULT_SETTINGS.prefix;
+	  key = prefix + key;
 	
-	  var pathRecords = this._records[path];
+	  var keyRecords = this.records[key];
 	  var keyIndex;
 	
-	  if (!pathRecords) {
+	  if (!keyRecords) {
 	    return;
 	  }
 	
 	  if (arguments.length === 2) {
-	    for (var i = 0; i < pathRecords.length; i++) {
-	      if (pathRecords[i].is(value)) {
-	        pathRecords[i].active = false;
-	        pathRecords.splice(i, 1);
+	    for (var i = 0; i < keyRecords.length; i++) {
+	      if (keyRecords[i].is(value)) {
+	        keyRecords[i].active = false;
+	        keyRecords.splice(i, 1);
 	        i--;
 	      }
 	    }
 	  }
 	
-	  if (arguments.length === 1 || pathRecords.length === 0) {
-	    this._records[path] = undefined;
-	    keyIndex = this._paths.indexOf(path);
+	  if (arguments.length === 1 || keyRecords.length === 0) {
+	    this.records[key] = undefined;
+	    keyIndex = this.keys.indexOf(key);
 	
 	    if (keyIndex !== -1) {
-	      this._paths.splice(keyIndex, 1);
+	      this.keys.splice(keyIndex, 1);
 	    }
 	  }
 	};
 	
 	
-	Store.prototype.getOrCreatePath = function getOrCreatePath(path) {
-	  var delimeter = this._settings.delimeter || DEFAULT_SETTINGS.delimeter;
-	  var prefix = this._settings.prefix || DEFAULT_SETTINGS.prefix;
-	  var pathArr = path.split(delimeter);
-	
-	  this.validatePath(pathArr);
-	
-	  path = prefix + path;
-	  var records = this._records[path];
+	function getOrCreateKey(key) {
+	  var prefix = this.settings.prefix || DEFAULT_SETTINGS.prefix;
+	  key = prefix + key;
+	  var records = this.records[key];
 	
 	  if (!records) {
-	    this._paths.push(path);
-	    records = this._records[path] = [];
+	    this.keys.push(key);
+	    records = this.records[key] = [];
 	  }
 	
 	  return records;
-	};
-	
-	
-	Store.prototype.validatePath = function validatePath(pathArr) {
-	  var numberOfWildcards = 0;
-	
-	  for (var i = 0; i < pathArr.length; i++) {
-	    if (pathArr[i].length === 0 || pathArr[i].search(/^\s*$/) !== -1) {
-	      throw new Error('Path must not contain empty or whitespace-only fragments');
-	    }
-	
-	    if (pathArr[i] === '*' || pathArr[i] === '**') {
-	      numberOfWildcards++;
-	
-	      if (numberOfWildcards > 1) {
-	        throw new Error('Path must not contain more than one wildcard');
-	      }
-	    }
-	  }
-	};
+	}
 
 
 /***/ },
@@ -200,10 +174,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	
 	function Record(value, uses) {
-	  if (!value) {
-	    throw new Error('Can\'t create a record without a value');
-	  }
-	
 	  this.active = true;
 	  this.uses = uses || Infinity;
 	  this.value = value;
@@ -227,56 +197,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	  return this.value;
 	};
-
-
-/***/ },
-/* 2 */
-/***/ function(module, exports) {
-
-	'use strict';
-	
-	
-	module.exports = function doPathsMatch(path1, path2) {
-	  if (path1[0] === '**' && path2[path2.length] === '**' ||
-	      path2[0] === '**' && path1[path1.length] === '**') {
-	    return true;
-	  }
-	
-	  var minLength = Math.min(path1.length, path2.length);
-	
-	  if (!doPathBeginningsMatch(path1, path2, minLength)) {
-	    return false;
-	  }
-	
-	  var reversedPath1 = new Array(minLength);
-	  var reversedPath2 = new Array(minLength);
-	
-	  for (var i = 0; i < minLength; i++) {
-	    reversedPath1[i] = path1[path1.length - i - 1];
-	    reversedPath2[i] = path2[path2.length - i - 1];
-	  }
-	
-	  if (!doPathBeginningsMatch(reversedPath1, reversedPath2, minLength)) {
-	    return false;
-	  }
-	
-	  return true;
-	};
-	
-	
-	function doPathBeginningsMatch(path1, path2, minLength) {
-	  for (var i = 0; i < minLength; i++) {
-	    if (path1[i] === '**' || path2[i] === '**') {
-	      return true;
-	    }
-	
-	    if (path1[i] !== path2[i] && path1[i] !== '*' && path2[i] !== '*') {
-	      return false;
-	    }
-	  }
-	
-	  return (minLength === path1.length && minLength === path2.length);
-	}
 
 
 /***/ }

@@ -20,61 +20,61 @@ describe('Store', function() {
     });
   });
 
-  describe('#getOrCreatePath()', function() {
-    it('creates the specified path if it doesn\'t exist yet', function() {
-      store.getOrCreatePath('path');
+  describe('#put()', function() {
+    it('creates the specified key if it doesn\'t exist yet', function() {
+      store.put('path');
 
-      expect(store._paths.indexOf('~path')).to.be.above(-1);
-      expect(store._records['~path']).to.be.instanceof(Array);
+      expect(store.keys.indexOf('~path')).to.be.above(-1);
+      expect(store.records['~path']).to.be.instanceof(Array);
     });
 
-    it('creates the specified path even if it is special', function() {
+    it('creates the specified key even if it is special', function() {
       var pathsToTest = ['name', 'toString', '`~!@#$%^&()\'".,/\\'];
 
       pathsToTest.forEach(function(path) {
-        expect(store.getOrCreatePath.bind(store, path)).to.not.throw(Error);
-        expect(store._paths.indexOf('~' + path)).to.be.above(-1);
-        expect(store._records['~' + path]).to.be.instanceof(Array);
+        expect(store.put.bind(store, path)).to.not.throw(Error);
+        expect(store.keys.indexOf('~' + path)).to.be.above(-1);
+        expect(store.records['~' + path]).to.be.instanceof(Array);
       });
     });
 
-    it('returns the existing array if the specified path has already been used', function() {
-      var array1 = store.getOrCreatePath('path');
-      var array2 = store.getOrCreatePath('path');
-
-      expect(array2).to.equal(array1);
-    });
-  });
-
-  describe('#set()', function() {
-    it('creates an array at the specified path and adds a record with the value to it', function() {
+    it('creates an array at the specified key and adds a record with the value to it', function() {
       var value = function() {};
-      store.set('path', value);
+      store.put('path', value);
 
-      expect(store._records['~path']).to.be.instanceof(Array);
-      expect(store._records['~path'][0].is(value)).to.be.true;
+      expect(store.records['~path']).to.be.instanceof(Array);
+      expect(store.records['~path'][0].is(value)).to.be.true;
     });
 
-    it('adds a record with the value to the array at the specified path', function() {
+    it('adds a record with the value to the array at the specified key', function() {
       var value1 = function() {};
       var value2 = function() {};
-      store.set('path', value1);
-      store.set('path', value2);
+      store.put('path', value1);
+      store.put('path', value2);
 
-      expect(store._records['~path'][1].value).to.equal(value2);
+      expect(store.records['~path'][1].value).to.equal(value2);
     });
 
     it('allows adding the same value more than once', function() {
       var value = function() {};
-      store.set('path1', value);
-      store.set('path1', value);
-      store.set('path2', value);
-      store.set('path2', value);
+      store.put('path1', value);
+      store.put('path1', value);
+      store.put('path2', value);
+      store.put('path2', value);
 
-      expect(store._records['~path1'][0].value).to.equal(value);
-      expect(store._records['~path1'][1].value).to.equal(value);
-      expect(store._records['~path2'][0].value).to.equal(value);
-      expect(store._records['~path2'][1].value).to.equal(value);
+      expect(store.records['~path1'][0].value).to.equal(value);
+      expect(store.records['~path1'][1].value).to.equal(value);
+      expect(store.records['~path2'][0].value).to.equal(value);
+      expect(store.records['~path2'][1].value).to.equal(value);
+    });
+
+    it('uses the custom prefix if provided', function() {
+      var store = new Store({
+        prefix: '__'
+      });
+      store.put('one.two.three', 123);
+
+      expect(store.records['__one.two.three']).to.be.instanceof(Array);
     });
   });
 
@@ -82,30 +82,30 @@ describe('Store', function() {
     it('removes the value from the specified path and leaves the other records intact', function() {
       var value1 = function() {};
       var value2 = function() {};
-      store.set('path1', value1);
-      store.set('path1', value2);
-      store.set('path2', value1);
+      store.put('path1', value1);
+      store.put('path1', value2);
+      store.put('path2', value1);
       store.del('path1', value2);
 
-      expect(store._records['~path1'][0].value).to.equal(value1);
-      expect(store._records['~path2'][0].value).to.equal(value1);
-      expect(store._records['~path1'][1]).to.equal(undefined);
+      expect(store.records['~path1'][0].value).to.equal(value1);
+      expect(store.records['~path2'][0].value).to.equal(value1);
+      expect(store.records['~path1'][1]).to.equal(undefined);
     });
 
     it('removes the array from the specified path if it\'s empty after removing the record from it', function() {
       var value = function() {};
-      store.set('path', value);
+      store.put('path', value);
       store.del('path', value);
 
-      expect(store._records['~path']).to.equal(undefined);
+      expect(store.records['~path']).to.equal(undefined);
     });
 
     it('removes the array from the specified path if the record is not specified', function() {
       var value = function() {};
-      store.set('path', value);
+      store.put('path', value);
       store.del('path');
 
-      expect(store._records['~path']).to.equal(undefined);
+      expect(store.records['~path']).to.equal(undefined);
     });
   });
 
@@ -115,9 +115,9 @@ describe('Store', function() {
       var value2 = function() {};
       var value3 = function() {};
 
-      store.set('path1', value1);
-      store.set('path1', value2);
-      store.set('path2', value3);
+      store.put('path1', value1);
+      store.put('path1', value2);
+      store.put('path2', value3);
 
       var result1 = store.get('path1');
       var result2 = store.get('path2');
@@ -131,29 +131,29 @@ describe('Store', function() {
 
     it('returns an empty array if no matching records found', function() {
       var value = function() {};
-      store.set('path', value);
+      store.put('path', value);
 
       expect(store.get('non-existent-path')).to.be.instanceof(Array);
     });
 
     it('returns a new array every time', function() {
       var value = function() {};
-      store.set('path', value);
+      store.put('path', value);
 
       var result1 = store.get('path');
       var result2 = store.get('path');
 
       expect(result1).to.not.equal(result2);
-      expect(result1).to.not.equal(store._records['~path']);
-      expect(result2).to.not.equal(store._records['~path']);
+      expect(result1).to.not.equal(store.records['~path']);
+      expect(result2).to.not.equal(store.records['~path']);
     });
 
     it('doesn\'t return inactive records', function() {
       var value1 = function() {};
       var value2 = function() {};
 
-      store.set('path', value1, 1);
-      store.set('path', value2);
+      store.put('path', value1, 1);
+      store.put('path', value2);
 
       store.get('path');
       var records = store.get('path');
@@ -166,10 +166,10 @@ describe('Store', function() {
       var value1 = function() {};
       var value2 = function() {};
 
-      store.set('path', value1, 1);
-      store.set('path', value2);
+      store.put('path', value1, 1);
+      store.put('path', value2);
 
-      var storedValues = store._records['~path'].map(function(item) {
+      var storedValues = store.records['~path'].map(function(item) {
         return item.value;
       });
 
@@ -178,31 +178,32 @@ describe('Store', function() {
 
       store.get('path');
 
-      storedValues = store._records['~path'].map(function(item) {
+      storedValues = store.records['~path'].map(function(item) {
         return item.value;
       });
 
       expect(storedValues).to.not.include(value1);
       expect(storedValues).to.include(value2);
     });
-  });
 
-  describe('#validatePath()', function() {
-    it('throws an error if any of the fragments of the specified path are empty or consist only of whitespace', function() {
-      var pathsToTest = ['', ' ', '.', '. ', ' .', ' . ', 'foo.', 'foo. ', '.foo', ' .foo'];
-
-      pathsToTest.forEach(function(path) {
-        expect(store.validatePath.bind(store, path.split('.'))).to.throw(Error);
+    it('uses the custom matching function if provided', function() {
+      var store = new Store({
+        match: function doKeysHaveSameLength(a, b) {
+          return a.length === b.length;
+        }
       });
-    });
 
-    it('throws an error if there is more than one wildcard in the specified path', function() {
-      var pathsToTest = ['*.*', '*.*.*', '*.**', '**.*', '**.**', '**.**.**', 'foo.*.*',
-                         '*.*.foo', 'foo.*.**', '**.*.foo', 'foo.*.*.bar', 'foo.**.**.bar', 'foo.*.bar.**']; // eslint-disable-line
+      var value1 = {};
+      var value2 = {};
 
-      pathsToTest.forEach(function(path) {
-        expect(store.validatePath.bind(store, path.split('.'))).to.throw(Error);
-      });
+      store.put('one.two.three', value1);
+      store.put('one.two', value2);
+
+      var result1 = store.get('three.two.one');
+      var result2 = store.get('two.one');
+
+      expect(result1[0]).to.equal(value1);
+      expect(result2[0]).to.equal(value2);
     });
   });
 });

@@ -2,10 +2,6 @@
 
 
 function Record(value, uses) {
-  if (!value) {
-    throw new Error('Can\'t create a record without a value');
-  }
-
   this.active = true;
   this.uses = uses || Infinity;
   this.value = value;
