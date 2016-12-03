@@ -1,6 +1,6 @@
 {
   "name": "match-store",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "A JavaScript storage that uses a function to match keys when retrieving values",
   "author": "Alex Shnayder <alex@shnayder.pro>",
   "license": "MIT",
