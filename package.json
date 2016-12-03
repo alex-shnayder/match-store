@@ -1,7 +1,7 @@
 {
-  "name": "wildcard-store",
+  "name": "match-store",
   "version": "1.0.0",
-  "description": "A JavaScript store that supports wildcards in keys and finds. The best choice for event emitters",
+  "description": "A JavaScript storage that uses a function to match keys when retrieving values",
   "author": "Alex Shnayder <alex@shnayder.pro>",
   "license": "MIT",
   "main": "src/Store.js",
@@ -11,17 +11,18 @@
     "lint": "./node_modules/.bin/eslint src test"
   },
   "keywords": [
-    "glob",
-    "namespace",
-    "emitter"
+    "store",
+    "storage",
+    "emitter",
+    "match"
   ],
-  "homepage": "https://github.com/alex-shnayder/wildcard-store",
+  "homepage": "https://github.com/alex-shnayder/match-store",
   "repository": {
     "type": "git",
-    "url": "https://github.com/alex-shnayder/wildcard-store.git"
+    "url": "https://github.com/alex-shnayder/match-store.git"
   },
   "bugs": {
-    "url": "https://github.com/alex-shnayder/wildcard-store/issues"
+    "url": "https://github.com/alex-shnayder/match-store/issues"
   },
   "devDependencies": {
     "chai": "^3.5.0",

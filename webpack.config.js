@@ -4,15 +4,15 @@ var webpack = require('webpack');
 
 module.exports = [{
   entry: {
-    'wildcard-store': './src/Store.js',
-    'wildcard-store.min': './src/Store.js'
+    'match-store': './src/Store.js',
+    'match-store.min': './src/Store.js'
   },
   output: {
     path: './dist',
     filename: '[name].js',
-    library: 'wildcard-store',
+    library: 'match-store',
     libraryTarget: 'umd',
-    devtoolModuleFilenameTemplate: 'wildcard-store/[resource-path]'
+    devtoolModuleFilenameTemplate: 'match-store/[resource-path]'
   },
   plugins: [
     new webpack.optimize.UglifyJsPlugin({
